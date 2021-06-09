@@ -2,6 +2,8 @@ use std::env;
 use std::error::Error;
 use std::fs;
 
+mod model;
+
 pub struct Config {
     pub query: String,
     pub filename: String,
@@ -22,36 +24,49 @@ impl Config {
         };
         let case_sensitive = env::var("CASE_INSENSITIVE").is_err();
 
-        Ok(Config { query, filename, case_sensitive })
+        Ok(Config {
+            query,
+            filename,
+            case_sensitive,
+        })
     }
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let contents = fs::read_to_string(config.filename)?;
+    let head_lines:Vec<&str> = contents.split("\n").collect();
 
-    let results = if config.case_sensitive {
-        search(&config.query, &contents)
-    } else {
-        search_case_insensitive(&config.query, &contents)
-    };
+    let mut wfdb_header = model::WFDBHeader::build_general_header(&head_lines[0]);
+    let last_line = (1 + wfdb_header.n_sig) as usize;
+    wfdb_header.build_channel_header((&head_lines[1..last_line]).to_vec());
+    println!("{:?}", wfdb_header);
 
-    for line in results {
-        println!("{}", line);
-    }
+    // let results = if config.case_sensitive {
+    //     search(&config.query, &contents)
+    // } else {
+    //     search_case_insensitive(&config.query, &contents)
+    // };
+
+    // for line in results {
+    //     println!("{}", line);
+    // }
 
     Ok(())
 }
 
 pub fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
-    contents.lines().filter(|line| line.contains(query)).collect()
+    contents
+        .lines()
+        .filter(|line| line.contains(query))
+        .collect()
 }
 
-pub fn search_case_insensitive<'a>(
-    query: &str,
-    contents: &'a str,
-) -> Vec<&'a str> {
+pub fn search_case_insensitive<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
     let query = query.to_lowercase();
-    contents.lines().filter(|line| line.to_lowercase().contains(&query)).collect()
+    contents
+        .lines()
+        .filter(|line| line.to_lowercase().contains(&query))
+        .collect()
 }
 
 #[cfg(test)]
