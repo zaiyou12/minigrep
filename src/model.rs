@@ -36,24 +36,31 @@ pub struct WFDBChannel {
     /// file_name: None, None, None
     pub file_name: String,
     /// fmt: file_name, None, None
-    pub fmt: String,
+    pub fmt: i32,
     /// samps_per_frame: fmt, 1, None
-    pub samps_per_frame: String,
+    pub samps_per_frame: i32,
     /// skew: fmt, None, None
-    pub skew: String,
+    pub skew: i32,
     /// byte_offset: fmt, None, None
-    pub byte_offset: String,
+    pub byte_offset: i32,
     /// adc_gain: fmt, 200.0, None
-    pub adc_gain: String,
+    pub adc_gain: i32,
     /// baseline: adc_gain, 0, None
-    pub baseline: String,
-    // pub units: String,
-    // pub adc_res: String,
-    // pub adc_zero: String,
-    // pub init_value: String,
-    // pub checksum: String,
-    // pub block_size: String,
-    // pub sig_name: String,
+    pub baseline: i32,
+    /// units: adc_gain, 'mV', None
+    pub units: String,
+    /// adc_res: adc_gain, None, 0
+    pub adc_res: i32,
+    /// adc_zero: adc_res, None, 0
+    pub adc_zero: i32,
+    /// init_value: adc_zero, None, None
+    pub init_value: i32,
+    /// checksum: init_value, None, None
+    pub checksum: i32,
+    /// block_size: checksum, None, 0
+    pub block_size: i32,
+    /// sig_name: block_size, None, None
+    pub sig_name: String,
 }
 
 
@@ -75,16 +82,16 @@ pub struct WFDBHeader {
     /// sig_len: fs, None, None
     pub sig_len: i64,
     /// base_time: sig_len, None, '00:00:00'
-    // pub base_time: String,
+    pub base_time: String,
     /// base_date: base_time, None, None
-    // pub base_date: String,
+    pub base_date: String,
 
     pub channels: Vec<WFDBChannel>,
 }
 
 impl WFDBHeader {
     pub fn build_general_header(contents: &str) -> WFDBHeader {
-        let re = Regex::new(r"(?P<record_name>[-\w]+)/?(?P<n_seg>\d*)[ \t]+(?P<n_sig>\d+)[ \t]*(?P<fs>\d*\.?\d*)/*(?P<counter_freq>-?\d*\.?\d*)\(?(?P<base_counter>-?\d*\.?\d*)\)?[ \t]*(?P<sig_len>\d*)[ \t]*").unwrap();
+        let re = Regex::new(r"(?P<record_name>[-\w]+)/?(?P<n_seg>\d*)[ \t]+(?P<n_sig>\d+)[ \t]*(?P<fs>\d*\.?\d*)/*(?P<counter_freq>-?\d*\.?\d*)\(?(?P<base_counter>-?\d*\.?\d*)\)?[ \t]*(?P<sig_len>\d*)[ \t]*(?P<base_time>\d{2}:?\d{2}:?\d{2})[ \t]*(?P<base_date>\d{2}/?\d{2}/?\d{4})").unwrap();
         let caps = re.captures(&contents).unwrap();
 
         WFDBHeader {
@@ -95,31 +102,32 @@ impl WFDBHeader {
             counter_freq: caps["counter_freq"].to_string(),
             base_counter: caps["base_counter"].to_string(),
             sig_len: caps["sig_len"].to_string().parse().unwrap(),
+            base_time: caps["base_time"].to_string(),
+            base_date: caps["base_date"].to_string(),
             channels: Vec::new(),
         }
     }
 
     pub fn build_channel_header(&mut self, contents: Vec<&str>) {
-        // FIXME: Regex pattern for units / adc_res / adc_zero / init_value / check_sum / block_size / sig_name
-        let re = Regex::new(r"(?P<file_name>~?[-\w]*\.?[\w]*)[ \t]+(?P<fmt>\d+)x?(?P<samps_per_frame>\d*):?(?P<skew>\d*)\+?(?P<byte_offset>\d*)[ \t]*(?P<adc_gain>-?\d*\.?\d*e?[\+-]?\d*)\(?(?P<baseline>-?\d*)\)?").unwrap();
+        let re = Regex::new(r"(?P<file_name>~?[-\w]*\.?[\w]*)[ \t]+(?P<fmt>\d+)x?(?P<samps_per_frame>\d*):?(?P<skew>\d*)\+?(?P<byte_offset>\d*)[ \t]*(?P<adc_gain>-?\d*\.?\d*e?[\+-]?\d*)\(?(?P<baseline>-?\d*)\)?/?(?P<units>[\w\^\-\?%]*)[ \t]*(?P<adc_res>\d*)[ \t]*(?P<adc_zero>-?\d*)[ \t]*(?P<init_value>-?\d*)[ \t]*(?P<checksum>-?\d*)[ \t]*(?P<block_size>\d*)[ \t]*(?P<sig_name>[\S]?[^\t\n\r\f\v]*)").unwrap();
        
         self.channels = contents.iter().map(|text| {
             let caps = re.captures(text).unwrap();
             WFDBChannel {
                 file_name: caps["file_name"].to_string(),
-                fmt: caps["fmt"].to_string(),
-                samps_per_frame: caps["samps_per_frame"].to_string(),
-                skew: caps["skew"].to_string(),
-                byte_offset: caps["byte_offset"].to_string(),
-                adc_gain: caps["adc_gain"].to_string(),
-                baseline: caps["baseline"].to_string(),
-                // units: caps["units"].to_string(),
-                // adc_res: caps["adc_res"].to_string(),
-                // adc_zero: caps["adc_zero"].to_string(),
-                // init_value: caps["init_value"].to_string(),
-                // checksum: caps["checksum"].to_string(),
-                // block_size: caps["block_size"].to_string(),
-                // sig_name: caps["sig_name"].to_string(),
+                fmt: caps["fmt"].to_string().parse().unwrap_or(0),
+                samps_per_frame: caps["samps_per_frame"].to_string().parse().unwrap_or(1),
+                skew: caps["skew"].to_string().parse().unwrap_or(0),
+                byte_offset: caps["byte_offset"].to_string().parse().unwrap_or(0),
+                adc_gain: caps["adc_gain"].to_string().parse().unwrap_or(200),
+                baseline: caps["baseline"].to_string().parse().unwrap_or(0),
+                units: caps["units"].to_string(),
+                adc_res: caps["adc_res"].to_string().parse().unwrap_or(0),
+                adc_zero: caps["adc_zero"].to_string().parse().unwrap_or(0),
+                init_value: caps["init_value"].to_string().parse().unwrap_or(0),
+                checksum: caps["checksum"].to_string().parse().unwrap_or(0),
+                block_size: caps["block_size"].to_string().parse().unwrap_or(0),
+                sig_name: caps["sig_name"].to_string(),
             }
         }).collect();
     }

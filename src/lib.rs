@@ -35,7 +35,8 @@ impl Config {
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let contents = fs::read_to_string(config.filename)?;
     let head_lines:Vec<&str> = contents.split("\n").collect();
-
+    
+    // Read header
     let mut wfdb_header = model::WFDBHeader::build_general_header(&head_lines[0]);
     let last_line = (1 + wfdb_header.n_sig) as usize;
     wfdb_header.build_channel_header((&head_lines[1..last_line]).to_vec());
