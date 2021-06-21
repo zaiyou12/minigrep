@@ -39,9 +39,9 @@ pub struct WFDBChannel {
     pub fmt: i32,
     /// samps_per_frame: fmt, 1, None
     pub samps_per_frame: i32,
-    /// skew: fmt, None, None
+    /// skew: fmt, 0, None
     pub skew: i32,
-    /// byte_offset: fmt, None, None
+    /// byte_offset: fmt, 0, None
     pub byte_offset: i32,
     /// adc_gain: fmt, 200.0, None
     pub adc_gain: i32,
@@ -90,6 +90,14 @@ pub struct WFDBHeader {
 }
 
 impl WFDBHeader {
+    pub fn new(contents: &str) -> WFDBHeader {
+        let head_lines:Vec<&str> = contents.split("\n").collect();
+        let mut wfdb_header = self::WFDBHeader::build_general_header(&head_lines[0]);
+        let last_line = (1 + wfdb_header.n_sig) as usize;
+        wfdb_header.build_channel_header((&head_lines[1..last_line]).to_vec());
+        wfdb_header
+    }
+
     pub fn build_general_header(contents: &str) -> WFDBHeader {
         let re = Regex::new(r"(?P<record_name>[-\w]+)/?(?P<n_seg>\d*)[ \t]+(?P<n_sig>\d+)[ \t]*(?P<fs>\d*\.?\d*)/*(?P<counter_freq>-?\d*\.?\d*)\(?(?P<base_counter>-?\d*\.?\d*)\)?[ \t]*(?P<sig_len>\d*)[ \t]*(?P<base_time>\d{2}:?\d{2}:?\d{2})[ \t]*(?P<base_date>\d{2}/?\d{2}/?\d{4})").unwrap();
         let caps = re.captures(&contents).unwrap();
