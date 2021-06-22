@@ -1,9 +1,12 @@
+use std::fs;
 use std::env;
 use std::error::Error;
-use std::fs;
 
-mod model;
-use model::WFDBHeader;
+mod _header;
+use _header::WFDBHeader;
+
+mod _signal;
+use _signal::WFDBSignal;
 
 pub struct Config {
     pub query: String,
@@ -36,7 +39,12 @@ impl Config {
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let contents = fs::read_to_string(config.filename)?;
     let wfdb_header = WFDBHeader::new(&contents);
-    println!("{:?}", wfdb_header);
+    println!("{:?}\n", wfdb_header);
+
+    
+    let wfdb_signal = WFDBSignal::new(&wfdb_header.channels[0].file_name, 0, 50)?;
+    println!("{:?}", wfdb_signal);
+
 
     // let results = if config.case_sensitive {
     //     search(&config.query, &contents)

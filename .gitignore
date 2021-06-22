@@ -2,3 +2,6 @@
 
 # data
 /data
+*.atr
+*.dat
+*.hea
